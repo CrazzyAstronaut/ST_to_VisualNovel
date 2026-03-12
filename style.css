@@ -52,3 +52,22 @@
         transform: none !important;
     }
 }
+
+.stbreathe-settings .stbreathe-row {
+    margin: 0.4rem 0;
+    align-items: center;
+}
+
+.stbreathe-settings .stbreathe-row label {
+    margin-left: 0;
+}
+
+.stbreathe-settings .stbreathe-row .text_pole {
+    min-width: 7rem;
+}
+
+.stbreathe-settings .stbreathe-note {
+    display: block;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}

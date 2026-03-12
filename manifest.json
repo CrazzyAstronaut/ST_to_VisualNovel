@@ -8,7 +8,7 @@
     "js": "index.js",
     "css": "style.css",
     "author": "bicho",
-    "version": "1.0.1",
-    "homePage": "https://github.com/your-user/st-breathing-idle",
+    "version": "1.1.0",
+    "homePage": "https://github.com/CrazzyAstronaut/ST_to_VisualNovel",
     "auto_update": true
 }

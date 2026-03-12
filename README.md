@@ -8,6 +8,7 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 - Coexists with Character Expressions (this mod does not control expression selection).
 - Lightweight and mobile-friendly.
 - No backend, no Live2D, no sprite editing.
+- Built-in settings drawer in the Extensions menu (live updates, persisted settings).
 
 ## How it works
 
@@ -48,6 +49,20 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 - Lower intensity on mobile.
 - Honors `prefers-reduced-motion`.
 - Anti-clipping animation profile by default (designed for `overflow: hidden` sprite holders).
+
+## Settings (Extensions menu)
+
+Open the **ST Breathing Idle** drawer in Extensions to customize:
+
+- Enable/disable breathing.
+- Intensity (`low` / `medium` / `high`).
+- Speed (`slow` / `medium` / `fast`).
+- Mobile intensity multiplier.
+- Respect reduced-motion preference.
+- Force motion (testing override).
+- Fallback behavior when Character Expressions selectors are not found.
+- Safety rescan interval and minimum sprite size.
+- Debug logs.
 
 ## Manual test checklist
 
