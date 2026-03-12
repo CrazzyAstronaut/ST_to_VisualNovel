@@ -72,7 +72,8 @@
     }
 
     function parseNumber(value, fallback) {
-        const parsed = Number(value);
+        const normalized = typeof value === 'string' ? value.replace(',', '.') : value;
+        const parsed = Number(normalized);
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
@@ -562,11 +563,11 @@
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-check">
                         <input id="stbreathe_enabled" type="checkbox" />
                         <label for="stbreathe_enabled">Enabled</label>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_intensity">Intensity</label>
                         <select id="stbreathe_intensity" class="text_pole">
                             <option value="low">Low</option>
@@ -574,7 +575,7 @@
                             <option value="high">High</option>
                         </select>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_speed">Speed</label>
                         <select id="stbreathe_speed" class="text_pole">
                             <option value="slow">Slow</option>
@@ -582,31 +583,31 @@
                             <option value="fast">Fast</option>
                         </select>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_mobile_multiplier">Mobile Intensity Multiplier</label>
                         <input id="stbreathe_mobile_multiplier" class="text_pole widthUnset" type="number" min="0.2" max="1.2" step="0.05" />
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-check">
                         <input id="stbreathe_respect_rm" type="checkbox" />
                         <label for="stbreathe_respect_rm">Respect Reduced Motion</label>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-check">
                         <input id="stbreathe_force_motion" type="checkbox" />
                         <label for="stbreathe_force_motion">Force Motion (Testing)</label>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-check">
                         <input id="stbreathe_fallback_without_ce" type="checkbox" />
                         <label for="stbreathe_fallback_without_ce">Fallback Without Character Expressions</label>
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_safe_rescan_ms">Safety Rescan (ms)</label>
                         <input id="stbreathe_safe_rescan_ms" class="text_pole widthUnset" type="number" min="1000" max="30000" step="100" />
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_min_size_px">Min Sprite Size (px)</label>
                         <input id="stbreathe_min_size_px" class="text_pole widthUnset" type="number" min="32" max="1024" step="1" />
                     </div>
-                    <div class="stbreathe-row flex-container">
+                    <div class="stbreathe-row stbreathe-row-check">
                         <input id="stbreathe_debug" type="checkbox" />
                         <label for="stbreathe_debug">Debug Logs</label>
                     </div>
