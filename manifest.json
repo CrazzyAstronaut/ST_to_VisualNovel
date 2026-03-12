@@ -1,0 +1,14 @@
+{
+    "display_name": "ST Breathing Idle",
+    "loading_order": 20,
+    "requires": [],
+    "optional": [
+        "expressions"
+    ],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "bicho",
+    "version": "1.0.1",
+    "homePage": "https://github.com/your-user/st-breathing-idle",
+    "auto_update": true
+}

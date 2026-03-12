@@ -1,0 +1,54 @@
+:root {
+    --stbreathe-duration: 4.2s;
+    --stbreathe-translate-y: -0.45%;
+    --stbreathe-scale-y: 1.006;
+    --stbreathe-scale-x: 0.9985;
+}
+
+.stbreathe-wrap {
+    display: inline-block;
+    line-height: 0;
+    transform-origin: 50% 100%;
+}
+
+.stbreathe-wrap.stbreathe-active {
+    animation-name: stbreathe-idle;
+    animation-duration: var(--stbreathe-duration);
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+}
+
+.stbreathe-direct.stbreathe-active {
+    animation-name: stbreathe-idle;
+    animation-duration: var(--stbreathe-duration);
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transform-origin: 50% 100%;
+}
+
+@keyframes stbreathe-idle {
+    0% {
+        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    }
+    45% {
+        transform: translate3d(0, var(--stbreathe-translate-y), 0) scale3d(var(--stbreathe-scale-x), var(--stbreathe-scale-y), 1);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    }
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+    .stbreathe-wrap.stbreathe-active,
+    .stbreathe-direct.stbreathe-active {
+        animation-duration: calc(var(--stbreathe-duration) + 0.8s);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stbreathe-wrap.stbreathe-active,
+    .stbreathe-direct.stbreathe-active {
+        animation: none !important;
+        transform: none !important;
+    }
+}
