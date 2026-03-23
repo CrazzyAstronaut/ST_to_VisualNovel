@@ -7,6 +7,7 @@
     const SETTINGS_STORAGE_KEY = `${MODULE_NAME}_settings`;
     const SETTINGS_UI_ID = 'stbreathe_settings_container';
     const REFRESH_MIN_INTERVAL_MS = 250;
+    const SETTINGS_MOUNT_CHECK_MS = 1500;
 
     if (window[GLOBAL_KEY]) {
         console.debug(`[${MODULE_NAME}] Already initialized, skipping duplicate load.`);
@@ -66,6 +67,7 @@
 
     let extensionSettingsRef = null;
     let saveSettingsFn = null;
+    let settingsMountTimer = null;
 
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
@@ -745,7 +747,18 @@
     }
 
     function getSettingsMountPoint() {
-        return document.getElementById('stbreathe_container') || document.getElementById('extensions_settings2');
+        const candidates = [
+            document.getElementById('stbreathe_container'),
+            document.getElementById('extensions_settings2'),
+            document.getElementById('extensions_settings'),
+            document.querySelector('#extensionsBlock #extensions_settings2'),
+            document.querySelector('#extensionsBlock #extensions_settings'),
+        ];
+
+        for (const node of candidates) {
+            if (node instanceof HTMLElement) return node;
+        }
+        return null;
     }
 
     function ensureSettingsUiMounted() {
@@ -762,11 +775,11 @@
 
     function mountSettingsUiWithRetry() {
         if (ensureSettingsUiMounted()) return;
-        let attempts = 0;
-        const timer = window.setInterval(() => {
-            attempts += 1;
-            if (ensureSettingsUiMounted() || attempts >= 30) window.clearInterval(timer);
-        }, 1000);
+        if (settingsMountTimer !== null) return;
+
+        settingsMountTimer = window.setInterval(() => {
+            ensureSettingsUiMounted();
+        }, SETTINGS_MOUNT_CHECK_MS);
     }
 
     function init() {
