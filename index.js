@@ -16,6 +16,7 @@
 
     const DEFAULT_SETTINGS = Object.freeze({
         enabled: true,
+        animationMode: 'stretch',
         intensity: 'medium',
         speed: 'medium',
         respectReducedMotion: true,
@@ -33,6 +34,12 @@
         slow: 5.2,
         medium: 4.2,
         fast: 3.4,
+    };
+
+    const ANIMATION_MODE_PRESETS = {
+        stretch: { useTranslate: false, useScale: true },
+        move: { useTranslate: true, useScale: false },
+        stretch_move: { useTranslate: true, useScale: true },
     };
 
     const INTENSITY_PRESETS = {
@@ -89,6 +96,9 @@
         normalized.fallbackWithoutCE = Boolean(normalized.fallbackWithoutCE);
         normalized.debug = Boolean(normalized.debug);
 
+        if (!Object.hasOwn(ANIMATION_MODE_PRESETS, normalized.animationMode)) {
+            normalized.animationMode = DEFAULT_SETTINGS.animationMode;
+        }
         if (!Object.hasOwn(SPEED_PRESETS, normalized.speed)) normalized.speed = DEFAULT_SETTINGS.speed;
         if (!Object.hasOwn(INTENSITY_PRESETS, normalized.intensity)) normalized.intensity = DEFAULT_SETTINGS.intensity;
 
@@ -200,6 +210,7 @@
         const root = document.documentElement;
         const speedPreset = SPEED_PRESETS[SETTINGS.speed] ?? SPEED_PRESETS.medium;
         const intensityPreset = INTENSITY_PRESETS[SETTINGS.intensity] ?? INTENSITY_PRESETS.medium;
+        const animationMode = ANIMATION_MODE_PRESETS[SETTINGS.animationMode] ?? ANIMATION_MODE_PRESETS.stretch;
 
         let duration = speedPreset;
         let translate = intensityPreset.translateYPercent;
@@ -214,10 +225,14 @@
             scaleX = 1 + ((scaleX - 1) * mult);
         }
 
+        const effectiveTranslate = animationMode.useTranslate ? translate : 0;
+        const effectiveScaleY = animationMode.useScale ? scaleY : 1;
+        const effectiveScaleX = animationMode.useScale ? scaleX : 1;
+
         root.style.setProperty('--stbreathe-duration', `${duration.toFixed(2)}s`);
-        root.style.setProperty('--stbreathe-translate-y', `${translate.toFixed(4)}%`);
-        root.style.setProperty('--stbreathe-scale-y', `${scaleY.toFixed(5)}`);
-        root.style.setProperty('--stbreathe-scale-x', `${scaleX.toFixed(5)}`);
+        root.style.setProperty('--stbreathe-translate-y', `${effectiveTranslate.toFixed(4)}%`);
+        root.style.setProperty('--stbreathe-scale-y', `${effectiveScaleY.toFixed(5)}`);
+        root.style.setProperty('--stbreathe-scale-x', `${effectiveScaleX.toFixed(5)}`);
     }
 
     function logDebug(...args) {
@@ -570,6 +585,14 @@
                         <label for="stbreathe_enabled">Enabled</label>
                     </div>
                     <div class="stbreathe-row stbreathe-row-field">
+                        <label for="stbreathe_animation_mode">Animation Mode</label>
+                        <select id="stbreathe_animation_mode" class="text_pole">
+                            <option value="stretch">Stretch</option>
+                            <option value="move">Move</option>
+                            <option value="stretch_move">Stretch + Move</option>
+                        </select>
+                    </div>
+                    <div class="stbreathe-row stbreathe-row-field">
                         <label for="stbreathe_intensity">Intensity</label>
                         <select id="stbreathe_intensity" class="text_pole">
                             <option value="low">Low</option>
@@ -624,6 +647,7 @@
         const get = (id) => root.querySelector(`#${id}`);
 
         const enabled = get('stbreathe_enabled');
+        const animationMode = get('stbreathe_animation_mode');
         const intensity = get('stbreathe_intensity');
         const speed = get('stbreathe_speed');
         const mobileMultiplier = get('stbreathe_mobile_multiplier');
@@ -635,6 +659,7 @@
         const debug = get('stbreathe_debug');
 
         if (enabled instanceof HTMLInputElement) enabled.checked = SETTINGS.enabled;
+        if (animationMode instanceof HTMLSelectElement) animationMode.value = SETTINGS.animationMode;
         if (intensity instanceof HTMLSelectElement) intensity.value = SETTINGS.intensity;
         if (speed instanceof HTMLSelectElement) speed.value = SETTINGS.speed;
         if (mobileMultiplier instanceof HTMLInputElement) mobileMultiplier.value = SETTINGS.mobileIntensityMultiplier.toFixed(2);
@@ -665,6 +690,7 @@
         const get = (id) => root.querySelector(`#${id}`);
 
         const enabled = get('stbreathe_enabled');
+        const animationMode = get('stbreathe_animation_mode');
         const intensity = get('stbreathe_intensity');
         const speed = get('stbreathe_speed');
         const mobileMultiplier = get('stbreathe_mobile_multiplier');
@@ -679,6 +705,13 @@
             enabled.addEventListener('input', () => {
                 SETTINGS.enabled = enabled.checked;
                 applyRuntimeSettings('enabled');
+            });
+        }
+
+        if (animationMode instanceof HTMLSelectElement) {
+            animationMode.addEventListener('change', () => {
+                SETTINGS.animationMode = animationMode.value;
+                applyRuntimeSettings('animation-mode');
             });
         }
 

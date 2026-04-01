@@ -1,6 +1,6 @@
 :root {
     --stbreathe-duration: 4.2s;
-    --stbreathe-translate-y: -0.45%;
+    --stbreathe-translate-y: 0%;
     --stbreathe-scale-y: 1.006;
     --stbreathe-scale-x: 0.9985;
 }

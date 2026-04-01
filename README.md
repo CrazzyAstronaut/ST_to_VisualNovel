@@ -7,6 +7,7 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 - Works in normal chat mode and Visual Novel mode.
 - Coexists with Character Expressions (this mod does not control expression selection).
 - Lightweight and mobile-friendly.
+- Three animation modes: `stretch`, `move`, and `stretch + move`.
 - No backend, no Live2D, no sprite editing.
 - Built-in settings drawer in the Extensions menu (live updates, persisted settings).
 
@@ -44,6 +45,7 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 ## Defaults
 
 - Enabled by default.
+- Animation mode: `stretch`.
 - Intensity: `medium`.
 - Speed: `medium`.
 - Lower intensity on mobile.
@@ -55,6 +57,7 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 Open the **ST Breathing Idle** drawer in Extensions to customize:
 
 - Enable/disable breathing.
+- Animation mode (`stretch` / `move` / `stretch + move`).
 - Intensity (`low` / `medium` / `high`).
 - Speed (`slow` / `medium` / `fast`).
 - Mobile intensity multiplier.
