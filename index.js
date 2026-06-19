@@ -52,6 +52,8 @@
         preferred: [
             '#expression-wrapper #expression-holder img.expression',
             '#visual-novel-wrapper .expression-holder img',
+            // ST_MultiCharacter_Expression_From_A_Card (MCEFAC): one img per character holder.
+            '#mcefac-stage .mcefac-holder img.mcefac-img',
         ],
         fallback: [
             '#expression-wrapper img.expression',
@@ -59,6 +61,8 @@
             '.expression-holder img.expression[data-expression]',
             'img.expression[data-sprite-folder-name]',
             'img.expression[data-expression]',
+            // MCEFAC fallback if its stage structure changes.
+            '#mcefac-stage img.expression',
         ],
         excludedAncestor: [
             '#image_list',
@@ -69,6 +73,8 @@
         rootCandidates: [
             '#expression-wrapper',
             '#visual-novel-wrapper',
+            // MCEFAC appends its stage directly to <body>; observe it for sprite swaps.
+            '#mcefac-stage',
         ],
     };
 
@@ -270,7 +276,14 @@
     }
 
     function isInsideKnownSpriteRoot(node) {
-        return Boolean(node.closest('#expression-wrapper') || node.closest('#visual-novel-wrapper') || node.closest('.expression-holder'));
+        return Boolean(
+            node.closest('#expression-wrapper')
+            || node.closest('#visual-novel-wrapper')
+            || node.closest('.expression-holder')
+            // MCEFAC stage/holder are first-class sprite roots too.
+            || node.closest('#mcefac-stage')
+            || node.closest('.mcefac-holder')
+        );
     }
 
     function isExcludedByAncestor(node) {
@@ -281,7 +294,10 @@
         return node.classList.contains('expression')
             || node.hasAttribute('data-expression')
             || node.hasAttribute('data-sprite-folder-name')
-            || Boolean(node.closest('.expression-holder'));
+            || Boolean(node.closest('.expression-holder'))
+            // MCEFAC sprites: keep detecting them even if they drop the 'expression' class.
+            || node.classList.contains('mcefac-img')
+            || Boolean(node.closest('.mcefac-holder'));
     }
 
     function hasUsableSource(node) {

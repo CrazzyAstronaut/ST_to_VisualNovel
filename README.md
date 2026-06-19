@@ -42,6 +42,23 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 - If CE is not present, fallback selectors attempt to detect compatible expression sprites.
 - If a node cannot be animated safely, the extension uses a conservative no-op.
 
+### Multi-Character Expression From A Card
+
+Fully compatible with
+[ST_MultiCharacter_Expression_From_A_Card](https://github.com/CrazzyAstronaut/ST_MultiCharacter_Expression_From_A_Card)
+(MCEFAC), which renders several character sprites at once on its own `#mcefac-stage`.
+
+- Each MCEFAC sprite (`#mcefac-stage .mcefac-holder img.mcefac-img`) is detected as a
+  first-class sprite root, so breathing works even if you disable the *Fallback Without
+  Character Expressions* option.
+- `#mcefac-stage` is observed directly, so newly toggled characters and sprite swaps start
+  breathing immediately instead of waiting for the safety rescan.
+- Breathing wraps the `<img>` and animates the wrapper only. MCEFAC keeps full control of its
+  sprites: source, per-character scale (`height`), horizontal flip (`scaleX(-1)` on the img),
+  drag-to-position, and its own fade-in/out animation (on the parent `.mcefac-sprite`) all keep
+  working — the two transforms compose instead of fighting.
+- Breathing animates from the bottom-center origin, matching MCEFAC's sprite anchoring.
+
 ## Defaults
 
 - Enabled by default.
