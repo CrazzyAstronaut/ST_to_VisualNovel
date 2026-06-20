@@ -17,8 +17,10 @@
     const DEFAULT_SETTINGS = Object.freeze({
         enabled: true,
         animationMode: 'stretch',
-        intensity: 'medium',
-        speed: 'medium',
+        intensity: 1.0,
+        speedSeconds: 4.2,
+        offsetX: 0,
+        offsetY: 0,
         respectReducedMotion: true,
         forceMotionForTesting: false,
         mobileIntensityMultiplier: 0.65,
@@ -30,23 +32,25 @@
 
     const SETTINGS = { ...DEFAULT_SETTINGS };
 
-    const SPEED_PRESETS = {
-        slow: 5.2,
-        medium: 4.2,
-        fast: 3.4,
-    };
-
     const ANIMATION_MODE_PRESETS = {
         stretch: { useTranslate: false, useScale: true },
         move: { useTranslate: true, useScale: false },
         stretch_move: { useTranslate: true, useScale: true },
     };
 
-    const INTENSITY_PRESETS = {
-        low: { translateYPercent: 0.35, scaleY: 1.003, scaleX: 0.9994 },
-        medium: { translateYPercent: 0.45, scaleY: 1.004, scaleX: 0.9992 },
-        high: { translateYPercent: 0.55, scaleY: 1.005, scaleX: 0.999 },
-    };
+    // Numeric "intensity" multiplies these base deltas (intensity 1.0 == previous "medium").
+    const INTENSITY_BASE = Object.freeze({ translateYPercent: 0.45, scaleYDelta: 0.004, scaleXDelta: 0.0008 });
+
+    // Slider bounds for the numeric controls (the number inputs clamp to these too,
+    // except the offsets, which are intentionally limitless).
+    const INTENSITY_RANGE = Object.freeze({ min: 0, max: 5, step: 0.01 });
+    const SPEED_RANGE = Object.freeze({ min: 0.5, max: 15, step: 0.1 });
+    const OFFSET_SLIDER = Object.freeze({ min: -400, max: 400, step: 1 });
+    const MOBILE_MULT_RANGE = Object.freeze({ min: 0.2, max: 1.2, step: 0.05 });
+
+    // Legacy preset names -> numeric values, for migrating settings saved by older versions.
+    const LEGACY_INTENSITY = Object.freeze({ low: 0.78, medium: 1.0, high: 1.22 });
+    const LEGACY_SPEED = Object.freeze({ slow: 5.2, medium: 4.2, fast: 3.4 });
 
     const SELECTORS = {
         preferred: [
@@ -105,10 +109,23 @@
         if (!Object.hasOwn(ANIMATION_MODE_PRESETS, normalized.animationMode)) {
             normalized.animationMode = DEFAULT_SETTINGS.animationMode;
         }
-        if (!Object.hasOwn(SPEED_PRESETS, normalized.speed)) normalized.speed = DEFAULT_SETTINGS.speed;
-        if (!Object.hasOwn(INTENSITY_PRESETS, normalized.intensity)) normalized.intensity = DEFAULT_SETTINGS.intensity;
 
-        normalized.mobileIntensityMultiplier = clamp(parseNumber(normalized.mobileIntensityMultiplier, DEFAULT_SETTINGS.mobileIntensityMultiplier), 0.2, 1.2);
+        // Migrate legacy preset strings ("low"/"medium"/"high", "slow"/"medium"/"fast") to numbers.
+        if (typeof normalized.intensity === 'string') {
+            normalized.intensity = LEGACY_INTENSITY[normalized.intensity] ?? DEFAULT_SETTINGS.intensity;
+        }
+        if (normalized.speedSeconds === undefined && typeof normalized.speed === 'string') {
+            normalized.speedSeconds = LEGACY_SPEED[normalized.speed] ?? DEFAULT_SETTINGS.speedSeconds;
+        }
+        delete normalized.speed;
+
+        normalized.intensity = clamp(parseNumber(normalized.intensity, DEFAULT_SETTINGS.intensity), INTENSITY_RANGE.min, INTENSITY_RANGE.max);
+        normalized.speedSeconds = clamp(parseNumber(normalized.speedSeconds, DEFAULT_SETTINGS.speedSeconds), SPEED_RANGE.min, SPEED_RANGE.max);
+        // Offsets are intentionally limitless (fully user-customizable).
+        normalized.offsetX = parseNumber(normalized.offsetX, DEFAULT_SETTINGS.offsetX);
+        normalized.offsetY = parseNumber(normalized.offsetY, DEFAULT_SETTINGS.offsetY);
+
+        normalized.mobileIntensityMultiplier = clamp(parseNumber(normalized.mobileIntensityMultiplier, DEFAULT_SETTINGS.mobileIntensityMultiplier), MOBILE_MULT_RANGE.min, MOBILE_MULT_RANGE.max);
         normalized.safeRescanMs = clamp(Math.round(parseNumber(normalized.safeRescanMs, DEFAULT_SETTINGS.safeRescanMs)), 1000, 30000);
         normalized.minSizePx = clamp(Math.round(parseNumber(normalized.minSizePx, DEFAULT_SETTINGS.minSizePx)), 32, 1024);
         return normalized;
@@ -214,18 +231,17 @@
 
     function applyAnimationVariables() {
         const root = document.documentElement;
-        const speedPreset = SPEED_PRESETS[SETTINGS.speed] ?? SPEED_PRESETS.medium;
-        const intensityPreset = INTENSITY_PRESETS[SETTINGS.intensity] ?? INTENSITY_PRESETS.medium;
+        const intensity = clamp(parseNumber(SETTINGS.intensity, DEFAULT_SETTINGS.intensity), INTENSITY_RANGE.min, INTENSITY_RANGE.max);
         const animationMode = ANIMATION_MODE_PRESETS[SETTINGS.animationMode] ?? ANIMATION_MODE_PRESETS.stretch;
 
-        let duration = speedPreset;
-        let translate = intensityPreset.translateYPercent;
-        let scaleY = intensityPreset.scaleY;
-        let scaleX = intensityPreset.scaleX;
+        let duration = clamp(parseNumber(SETTINGS.speedSeconds, DEFAULT_SETTINGS.speedSeconds), SPEED_RANGE.min, SPEED_RANGE.max);
+        let translate = INTENSITY_BASE.translateYPercent * intensity;
+        let scaleY = 1 + (INTENSITY_BASE.scaleYDelta * intensity);
+        let scaleX = 1 - (INTENSITY_BASE.scaleXDelta * intensity);
 
         if (isMobileLikeViewport()) {
             const mult = Number(SETTINGS.mobileIntensityMultiplier) || 0.65;
-            duration = Math.max(3.0, speedPreset + 0.8);
+            duration = Math.max(SPEED_RANGE.min, duration + 0.8);
             translate *= mult;
             scaleY = 1 + ((scaleY - 1) * mult);
             scaleX = 1 + ((scaleX - 1) * mult);
@@ -235,10 +251,16 @@
         const effectiveScaleY = animationMode.useScale ? scaleY : 1;
         const effectiveScaleX = animationMode.useScale ? scaleX : 1;
 
+        // Offsets are a constant reposition baked into every keyframe (independent of mode).
+        const offsetX = parseNumber(SETTINGS.offsetX, 0);
+        const offsetY = parseNumber(SETTINGS.offsetY, 0);
+
         root.style.setProperty('--stbreathe-duration', `${duration.toFixed(2)}s`);
         root.style.setProperty('--stbreathe-translate-y', `${effectiveTranslate.toFixed(4)}%`);
         root.style.setProperty('--stbreathe-scale-y', `${effectiveScaleY.toFixed(5)}`);
         root.style.setProperty('--stbreathe-scale-x', `${effectiveScaleX.toFixed(5)}`);
+        root.style.setProperty('--stbreathe-offset-x', `${offsetX}px`);
+        root.style.setProperty('--stbreathe-offset-y', `${offsetY}px`);
     }
 
     function logDebug(...args) {
@@ -585,10 +607,69 @@
         }
     }
 
+    // Numeric controls handled as synced slider + number pairs. `decimals === null` => integers.
+    // `unbounded` keeps the number input free of min/max (offsets). `read` pulls the live value.
+    const RANGE_CONTROLS = [
+        {
+            key: 'intensity', label: 'Intensity', decimals: 2,
+            min: INTENSITY_RANGE.min, max: INTENSITY_RANGE.max, step: INTENSITY_RANGE.step,
+            help: 'How pronounced the breathing is. 1.00 is the default amount; higher exaggerates it.',
+        },
+        {
+            key: 'speedSeconds', label: 'Speed (s/cycle)', decimals: 2,
+            min: SPEED_RANGE.min, max: SPEED_RANGE.max, step: SPEED_RANGE.step,
+            help: 'Seconds per breath cycle. Lower is faster, higher is slower.',
+        },
+        {
+            key: 'offsetX', label: 'Offset X (px)', decimals: null, unbounded: true,
+            min: OFFSET_SLIDER.min, max: OFFSET_SLIDER.max, step: OFFSET_SLIDER.step,
+            help: 'Horizontal shift of the sprite in pixels. Negative moves left. No limits.',
+        },
+        {
+            key: 'offsetY', label: 'Offset Y (px)', decimals: null, unbounded: true,
+            min: OFFSET_SLIDER.min, max: OFFSET_SLIDER.max, step: OFFSET_SLIDER.step,
+            help: 'Vertical shift of the sprite in pixels. Negative moves up. No limits.',
+        },
+        {
+            key: 'mobileIntensityMultiplier', label: 'Mobile Intensity', decimals: 2,
+            min: MOBILE_MULT_RANGE.min, max: MOBILE_MULT_RANGE.max, step: MOBILE_MULT_RANGE.step,
+            help: 'Scales intensity down on phones/tablets. 1.00 = same as desktop.',
+        },
+    ];
+
+    function formatRangeValue(control, value) {
+        return control.decimals === null ? String(Math.round(value)) : value.toFixed(control.decimals);
+    }
+
+    function helpIcon(text) {
+        return `<i class="fa-solid fa-circle-info stbreathe-help" title="${text}"></i>`;
+    }
+
+    function rangeRowHtml(control) {
+        const numAttrs = control.unbounded
+            ? `step="${control.step}"`
+            : `min="${control.min}" max="${control.max}" step="${control.step}"`;
+        return `
+            <div class="stbreathe-row stbreathe-row-range">
+                <div class="stbreathe-row-label">
+                    <label for="stbreathe_${control.key}_num">${control.label}</label>
+                    ${helpIcon(control.help)}
+                </div>
+                <div class="stbreathe-range-control">
+                    <input id="stbreathe_${control.key}_range" class="stbreathe-slider" type="range"
+                        min="${control.min}" max="${control.max}" step="${control.step}" />
+                    <input id="stbreathe_${control.key}_num" class="text_pole stbreathe-num" type="number" ${numAttrs} />
+                </div>
+            </div>`;
+    }
+
     function createSettingsDrawerElement() {
         const container = document.createElement('div');
         container.id = SETTINGS_UI_ID;
         container.className = 'stbreathe-settings';
+
+        const rangeRows = Object.fromEntries(RANGE_CONTROLS.map((c) => [c.key, rangeRowHtml(c)]));
+
         container.innerHTML = `
             <div class="inline-drawer">
                 <div class="inline-drawer-toggle inline-drawer-header" title="Breathing idle settings for sprites">
@@ -596,61 +677,81 @@
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <div class="stbreathe-row stbreathe-row-check">
-                        <input id="stbreathe_enabled" type="checkbox" />
-                        <label for="stbreathe_enabled">Enabled</label>
+
+                    <div class="stbreathe-section">
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_enabled" type="checkbox" />
+                            <label for="stbreathe_enabled">Enabled</label>
+                            ${helpIcon('Master switch for the breathing animation on all sprites.')}
+                        </div>
                     </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_animation_mode">Animation Mode</label>
-                        <select id="stbreathe_animation_mode" class="text_pole">
-                            <option value="stretch">Stretch</option>
-                            <option value="move">Move</option>
-                            <option value="stretch_move">Stretch + Move</option>
-                        </select>
+
+                    <div class="stbreathe-section">
+                        <div class="stbreathe-section-title">Animation</div>
+                        <div class="stbreathe-row stbreathe-row-field">
+                            <div class="stbreathe-row-label">
+                                <label for="stbreathe_animation_mode">Animation Mode</label>
+                                ${helpIcon('Stretch scales the sprite, Move shifts it vertically, Stretch + Move does both.')}
+                            </div>
+                            <select id="stbreathe_animation_mode" class="text_pole">
+                                <option value="stretch">Stretch</option>
+                                <option value="move">Move</option>
+                                <option value="stretch_move">Stretch + Move</option>
+                            </select>
+                        </div>
+                        ${rangeRows.intensity}
+                        ${rangeRows.speedSeconds}
+                        ${rangeRows.offsetX}
+                        ${rangeRows.offsetY}
                     </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_intensity">Intensity</label>
-                        <select id="stbreathe_intensity" class="text_pole">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
+
+                    <div class="stbreathe-section">
+                        <div class="stbreathe-section-title">Behavior</div>
+                        ${rangeRows.mobileIntensityMultiplier}
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_respect_rm" type="checkbox" />
+                            <label for="stbreathe_respect_rm">Respect Reduced Motion</label>
+                            ${helpIcon('When your OS requests reduced motion, breathing is disabled automatically.')}
+                        </div>
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_force_motion" type="checkbox" />
+                            <label for="stbreathe_force_motion">Force Motion (Testing)</label>
+                            ${helpIcon('Override reduced-motion and always animate. Intended for testing only.')}
+                        </div>
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_fallback_without_ce" type="checkbox" />
+                            <label for="stbreathe_fallback_without_ce">Fallback Without Character Expressions</label>
+                            ${helpIcon('Animate compatible sprites even when official Character Expressions is not detected.')}
+                        </div>
                     </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_speed">Speed</label>
-                        <select id="stbreathe_speed" class="text_pole">
-                            <option value="slow">Slow</option>
-                            <option value="medium">Medium</option>
-                            <option value="fast">Fast</option>
-                        </select>
+
+                    <div class="stbreathe-section">
+                        <div class="stbreathe-section-title">Advanced</div>
+                        <div class="stbreathe-row stbreathe-row-field">
+                            <div class="stbreathe-row-label">
+                                <label for="stbreathe_safe_rescan_ms">Safety Rescan (ms)</label>
+                                ${helpIcon('How often to re-scan the DOM as a safety net, in milliseconds.')}
+                            </div>
+                            <input id="stbreathe_safe_rescan_ms" class="text_pole widthUnset" type="number" min="1000" max="30000" step="100" />
+                        </div>
+                        <div class="stbreathe-row stbreathe-row-field">
+                            <div class="stbreathe-row-label">
+                                <label for="stbreathe_min_size_px">Min Sprite Size (px)</label>
+                                ${helpIcon('Ignore images smaller than this (avoids animating icons/thumbnails).')}
+                            </div>
+                            <input id="stbreathe_min_size_px" class="text_pole widthUnset" type="number" min="32" max="1024" step="1" />
+                        </div>
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_debug" type="checkbox" />
+                            <label for="stbreathe_debug">Debug Logs</label>
+                            ${helpIcon('Print verbose diagnostic messages to the browser console.')}
+                        </div>
                     </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_mobile_multiplier">Mobile Intensity Multiplier</label>
-                        <input id="stbreathe_mobile_multiplier" class="text_pole widthUnset" type="number" min="0.2" max="1.2" step="0.05" />
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-check">
-                        <input id="stbreathe_respect_rm" type="checkbox" />
-                        <label for="stbreathe_respect_rm">Respect Reduced Motion</label>
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-check">
-                        <input id="stbreathe_force_motion" type="checkbox" />
-                        <label for="stbreathe_force_motion">Force Motion (Testing)</label>
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-check">
-                        <input id="stbreathe_fallback_without_ce" type="checkbox" />
-                        <label for="stbreathe_fallback_without_ce">Fallback Without Character Expressions</label>
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_safe_rescan_ms">Safety Rescan (ms)</label>
-                        <input id="stbreathe_safe_rescan_ms" class="text_pole widthUnset" type="number" min="1000" max="30000" step="100" />
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-field">
-                        <label for="stbreathe_min_size_px">Min Sprite Size (px)</label>
-                        <input id="stbreathe_min_size_px" class="text_pole widthUnset" type="number" min="32" max="1024" step="1" />
-                    </div>
-                    <div class="stbreathe-row stbreathe-row-check">
-                        <input id="stbreathe_debug" type="checkbox" />
-                        <label for="stbreathe_debug">Debug Logs</label>
+
+                    <div class="stbreathe-row stbreathe-reset-row">
+                        <div id="stbreathe_reset" class="menu_button stbreathe-reset" title="Restore every setting to its default value">
+                            <i class="fa-solid fa-rotate-left"></i> Reset to defaults
+                        </div>
                     </div>
                     <small class="stbreathe-note">Changes apply live and persist in extension settings.</small>
                 </div>
@@ -662,11 +763,16 @@
     function updateSettingsUiValues(root) {
         const get = (id) => root.querySelector(`#${id}`);
 
+        for (const control of RANGE_CONTROLS) {
+            const value = parseNumber(SETTINGS[control.key], DEFAULT_SETTINGS[control.key]);
+            const range = get(`stbreathe_${control.key}_range`);
+            const num = get(`stbreathe_${control.key}_num`);
+            if (range instanceof HTMLInputElement) range.value = String(clamp(value, control.min, control.max));
+            if (num instanceof HTMLInputElement) num.value = formatRangeValue(control, value);
+        }
+
         const enabled = get('stbreathe_enabled');
         const animationMode = get('stbreathe_animation_mode');
-        const intensity = get('stbreathe_intensity');
-        const speed = get('stbreathe_speed');
-        const mobileMultiplier = get('stbreathe_mobile_multiplier');
         const respectRm = get('stbreathe_respect_rm');
         const forceMotion = get('stbreathe_force_motion');
         const fallback = get('stbreathe_fallback_without_ce');
@@ -676,9 +782,6 @@
 
         if (enabled instanceof HTMLInputElement) enabled.checked = SETTINGS.enabled;
         if (animationMode instanceof HTMLSelectElement) animationMode.value = SETTINGS.animationMode;
-        if (intensity instanceof HTMLSelectElement) intensity.value = SETTINGS.intensity;
-        if (speed instanceof HTMLSelectElement) speed.value = SETTINGS.speed;
-        if (mobileMultiplier instanceof HTMLInputElement) mobileMultiplier.value = SETTINGS.mobileIntensityMultiplier.toFixed(2);
         if (respectRm instanceof HTMLInputElement) respectRm.checked = SETTINGS.respectReducedMotion;
         if (forceMotion instanceof HTMLInputElement) forceMotion.checked = SETTINGS.forceMotionForTesting;
         if (fallback instanceof HTMLInputElement) fallback.checked = SETTINGS.fallbackWithoutCE;
@@ -702,20 +805,44 @@
         }
     }
 
+    function wireRangePair(root, control) {
+        const range = root.querySelector(`#stbreathe_${control.key}_range`);
+        const num = root.querySelector(`#stbreathe_${control.key}_num`);
+
+        if (range instanceof HTMLInputElement) {
+            range.addEventListener('input', () => {
+                const value = parseNumber(range.value, SETTINGS[control.key]);
+                SETTINGS[control.key] = value;
+                if (num instanceof HTMLInputElement) num.value = formatRangeValue(control, value);
+                applyRuntimeSettings(control.key);
+            });
+        }
+
+        if (num instanceof HTMLInputElement) {
+            num.addEventListener('input', () => {
+                const value = parseNumber(num.value, SETTINGS[control.key]);
+                SETTINGS[control.key] = value;
+                // Slider tracks the value but stays within its own bounds (offsets may exceed it).
+                if (range instanceof HTMLInputElement) range.value = String(clamp(value, control.min, control.max));
+                applyRuntimeSettings(control.key);
+            });
+        }
+    }
+
     function bindSettingsUiEvents(root) {
         const get = (id) => root.querySelector(`#${id}`);
 
+        for (const control of RANGE_CONTROLS) wireRangePair(root, control);
+
         const enabled = get('stbreathe_enabled');
         const animationMode = get('stbreathe_animation_mode');
-        const intensity = get('stbreathe_intensity');
-        const speed = get('stbreathe_speed');
-        const mobileMultiplier = get('stbreathe_mobile_multiplier');
         const respectRm = get('stbreathe_respect_rm');
         const forceMotion = get('stbreathe_force_motion');
         const fallback = get('stbreathe_fallback_without_ce');
         const safeRescan = get('stbreathe_safe_rescan_ms');
         const minSize = get('stbreathe_min_size_px');
         const debug = get('stbreathe_debug');
+        const reset = get('stbreathe_reset');
 
         if (enabled instanceof HTMLInputElement) {
             enabled.addEventListener('input', () => {
@@ -728,27 +855,6 @@
             animationMode.addEventListener('change', () => {
                 SETTINGS.animationMode = animationMode.value;
                 applyRuntimeSettings('animation-mode');
-            });
-        }
-
-        if (intensity instanceof HTMLSelectElement) {
-            intensity.addEventListener('change', () => {
-                SETTINGS.intensity = intensity.value;
-                applyRuntimeSettings('intensity');
-            });
-        }
-
-        if (speed instanceof HTMLSelectElement) {
-            speed.addEventListener('change', () => {
-                SETTINGS.speed = speed.value;
-                applyRuntimeSettings('speed');
-            });
-        }
-
-        if (mobileMultiplier instanceof HTMLInputElement) {
-            mobileMultiplier.addEventListener('input', () => {
-                SETTINGS.mobileIntensityMultiplier = parseNumber(mobileMultiplier.value, SETTINGS.mobileIntensityMultiplier);
-                applyRuntimeSettings('mobile-multiplier');
             });
         }
 
@@ -791,6 +897,14 @@
             debug.addEventListener('input', () => {
                 SETTINGS.debug = debug.checked;
                 applyRuntimeSettings('debug');
+            });
+        }
+
+        if (reset instanceof HTMLElement) {
+            reset.addEventListener('click', () => {
+                Object.assign(SETTINGS, DEFAULT_SETTINGS);
+                updateSettingsUiValues(root);
+                applyRuntimeSettings('reset');
             });
         }
     }

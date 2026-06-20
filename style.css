@@ -3,6 +3,8 @@
     --stbreathe-translate-y: 0%;
     --stbreathe-scale-y: 1.006;
     --stbreathe-scale-x: 0.9985;
+    --stbreathe-offset-x: 0px;
+    --stbreathe-offset-y: 0px;
 }
 
 .stbreathe-wrap {
@@ -28,13 +30,13 @@
 
 @keyframes stbreathe-idle {
     0% {
-        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+        transform: translate3d(var(--stbreathe-offset-x), var(--stbreathe-offset-y), 0) scale3d(1, 1, 1);
     }
     45% {
-        transform: translate3d(0, var(--stbreathe-translate-y), 0) scale3d(var(--stbreathe-scale-x), var(--stbreathe-scale-y), 1);
+        transform: translate3d(var(--stbreathe-offset-x), calc(var(--stbreathe-offset-y) + var(--stbreathe-translate-y)), 0) scale3d(var(--stbreathe-scale-x), var(--stbreathe-scale-y), 1);
     }
     100% {
-        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+        transform: translate3d(var(--stbreathe-offset-x), var(--stbreathe-offset-y), 0) scale3d(1, 1, 1);
     }
 }
 
@@ -57,13 +59,58 @@
     padding-top: 0.35rem;
 }
 
+/* Grouped sections */
+.stbreathe-settings .stbreathe-section {
+    margin: 0.35rem 0 0.6rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+}
+
+.stbreathe-settings .stbreathe-section:last-of-type {
+    border-bottom: none;
+}
+
+.stbreathe-settings .stbreathe-section-title {
+    margin: 0.15rem 0 0.4rem;
+    font-weight: bold;
+    font-size: 0.78em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.65;
+}
+
 .stbreathe-settings .stbreathe-row {
     margin: 0.45rem 0;
 }
 
+/* Help icon shared by every option */
+.stbreathe-settings .stbreathe-help {
+    cursor: help;
+    opacity: 0.55;
+    font-size: 0.85em;
+    flex: 0 0 auto;
+}
+
+.stbreathe-settings .stbreathe-help:hover {
+    opacity: 0.95;
+    color: var(--SmartThemeQuoteColor, #6c8cff);
+}
+
+.stbreathe-settings .stbreathe-row-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.stbreathe-settings .stbreathe-row-label label {
+    margin: 0;
+    line-height: 1.25;
+}
+
 .stbreathe-settings .stbreathe-row-check {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     column-gap: 0.5rem;
 }
@@ -84,7 +131,8 @@
     column-gap: 0.6rem;
 }
 
-.stbreathe-settings .stbreathe-row-field label {
+.stbreathe-settings .stbreathe-row-field > label,
+.stbreathe-settings .stbreathe-row-field .text_pole {
     margin: 0;
     line-height: 1.25;
 }
@@ -92,6 +140,46 @@
 .stbreathe-settings .stbreathe-row-field .text_pole {
     width: 100%;
     min-width: 0;
+}
+
+/* Slider + number control (ST font-size style) */
+.stbreathe-settings .stbreathe-row-range {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.1fr);
+    align-items: center;
+    column-gap: 0.6rem;
+}
+
+.stbreathe-settings .stbreathe-range-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.stbreathe-settings .stbreathe-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+
+.stbreathe-settings .stbreathe-num {
+    flex: 0 0 5.5em;
+    width: 5.5em;
+    min-width: 0;
+    text-align: center;
+}
+
+/* Reset button */
+.stbreathe-settings .stbreathe-reset-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.65rem;
+}
+
+.stbreathe-settings .stbreathe-reset {
+    width: 100%;
+    justify-content: center;
 }
 
 .stbreathe-settings .stbreathe-note {
@@ -102,7 +190,8 @@
 }
 
 @media (max-width: 700px) {
-    .stbreathe-settings .stbreathe-row-field {
+    .stbreathe-settings .stbreathe-row-field,
+    .stbreathe-settings .stbreathe-row-range {
         grid-template-columns: 1fr;
         row-gap: 0.35rem;
     }

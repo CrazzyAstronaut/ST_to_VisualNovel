@@ -63,26 +63,44 @@ Fully compatible with
 
 - Enabled by default.
 - Animation mode: `stretch`.
-- Intensity: `medium`.
-- Speed: `medium`.
+- Intensity: `1.00`.
+- Speed: `4.20` seconds per cycle.
+- Offset X / Offset Y: `0` px.
 - Lower intensity on mobile.
 - Honors `prefers-reduced-motion`.
 - Anti-clipping animation profile by default (designed for `overflow: hidden` sprite holders).
 
 ## Settings (Extensions menu)
 
-Open the **ST Breathing Idle** drawer in Extensions to customize:
+The drawer is grouped into **Animation**, **Behavior**, and **Advanced** sections, and every
+option has a hoverable info icon (ⓘ) explaining what it does. All changes apply live.
 
-- Enable/disable breathing.
-- Animation mode (`stretch` / `move` / `stretch + move`).
-- Intensity (`low` / `medium` / `high`).
-- Speed (`slow` / `medium` / `fast`).
-- Mobile intensity multiplier.
-- Respect reduced-motion preference.
-- Force motion (testing override).
-- Fallback behavior when Character Expressions selectors are not found.
-- Safety rescan interval and minimum sprite size.
-- Debug logs.
+**Animation**
+
+- **Animation mode** — `stretch` / `move` / `stretch + move`.
+- **Intensity** — numeric slider + value (like SillyTavern's font-size control). `1.00` is the
+  default amount; higher exaggerates the breathing.
+- **Speed (s/cycle)** — numeric slider + value. Seconds per breath cycle; lower is faster.
+- **Offset X / Offset Y** — numeric slider + value, **no limits**. Constant pixel shift of the
+  sprite (negative moves left/up). Useful for nudging a sprite into place.
+
+**Behavior**
+
+- **Mobile intensity** — multiplier applied to intensity on phones/tablets.
+- **Respect reduced motion** — auto-disable when the OS requests reduced motion.
+- **Force motion (testing)** — override reduced motion for testing.
+- **Fallback without Character Expressions** — animate compatible sprites even when official CE
+  is not detected.
+
+**Advanced**
+
+- **Safety rescan (ms)** and **Min sprite size (px)**.
+- **Debug logs**.
+
+**Reset to defaults** — a button at the bottom restores every setting at once.
+
+> Older installs that saved `low`/`medium`/`high` and `slow`/`medium`/`fast` are migrated
+> automatically to the new numeric values.
 
 ## Manual test checklist
 
