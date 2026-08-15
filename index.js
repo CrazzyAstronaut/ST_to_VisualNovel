@@ -6,6 +6,9 @@
     const FORCE_MOTION_KEY = 'stbreathe_force_motion';
     const SETTINGS_STORAGE_KEY = `${MODULE_NAME}_settings`;
     const SETTINGS_UI_ID = 'stbreathe_settings_container';
+    const GROUP_POPOUT_ID = 'groupMemberListPopout';
+    const GROUP_POPOUT_ENHANCED_CLASS = 'stbreathe-group-popout-enhanced';
+    const GROUP_POPOUT_COLLAPSED_CLASS = 'stbreathe-group-popout-collapsed';
     const REFRESH_MIN_INTERVAL_MS = 250;
     const SETTINGS_MOUNT_CHECK_MS = 1500;
 
@@ -27,6 +30,8 @@
         fallbackWithoutCE: true,
         safeRescanMs: 4000,
         minSizePx: 72,
+        groupPopoutCollapsible: true,
+        groupPopoutCollapsed: false,
         debug: false,
     });
 
@@ -85,6 +90,7 @@
     let extensionSettingsRef = null;
     let saveSettingsFn = null;
     let settingsMountTimer = null;
+    let groupPopoutController = null;
 
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
@@ -104,6 +110,8 @@
         normalized.respectReducedMotion = Boolean(normalized.respectReducedMotion);
         normalized.forceMotionForTesting = Boolean(normalized.forceMotionForTesting);
         normalized.fallbackWithoutCE = Boolean(normalized.fallbackWithoutCE);
+        normalized.groupPopoutCollapsible = Boolean(normalized.groupPopoutCollapsible);
+        normalized.groupPopoutCollapsed = Boolean(normalized.groupPopoutCollapsed);
         normalized.debug = Boolean(normalized.debug);
 
         if (!Object.hasOwn(ANIMATION_MODE_PRESETS, normalized.animationMode)) {
@@ -607,6 +615,149 @@
         }
     }
 
+    class GroupMemberPopoutController {
+        constructor() {
+            this.observer = null;
+            this.started = false;
+            this.onGroupNameInput = (event) => {
+                if (!(event.target instanceof HTMLInputElement) || event.target.id !== 'rm_group_chat_name') return;
+                const popout = document.getElementById(GROUP_POPOUT_ID);
+                if (popout instanceof HTMLElement) this.updateTitle(popout);
+            };
+        }
+
+        start() {
+            if (this.started) return;
+            this.started = true;
+            this.reconfigure();
+
+            if (document.body instanceof HTMLBodyElement) {
+                this.observer = new MutationObserver((mutations) => {
+                    if (!SETTINGS.groupPopoutCollapsible) return;
+                    for (const mutation of mutations) {
+                        for (const node of mutation.addedNodes) {
+                            if (!(node instanceof Element)) continue;
+                            const popout = node.id === GROUP_POPOUT_ID
+                                ? node
+                                : node.querySelector(`#${GROUP_POPOUT_ID}`);
+                            if (popout instanceof HTMLElement) this.enhance(popout);
+                        }
+                    }
+                });
+                this.observer.observe(document.body, { childList: true, subtree: true });
+            }
+
+            document.addEventListener('input', this.onGroupNameInput, true);
+            document.addEventListener('change', this.onGroupNameInput, true);
+        }
+
+        stop() {
+            if (!this.started) return;
+            this.started = false;
+            if (this.observer) this.observer.disconnect();
+            this.observer = null;
+            document.removeEventListener('input', this.onGroupNameInput, true);
+            document.removeEventListener('change', this.onGroupNameInput, true);
+            const popout = document.getElementById(GROUP_POPOUT_ID);
+            if (popout instanceof HTMLElement) this.removeEnhancement(popout);
+        }
+
+        reconfigure() {
+            const popout = document.getElementById(GROUP_POPOUT_ID);
+            if (!(popout instanceof HTMLElement)) return;
+            if (SETTINGS.groupPopoutCollapsible) {
+                this.enhance(popout);
+                this.updateTitle(popout);
+                this.setCollapsed(popout, SETTINGS.groupPopoutCollapsed, false);
+            } else {
+                this.removeEnhancement(popout);
+            }
+        }
+
+        getGroupName() {
+            const nameInput = document.getElementById('rm_group_chat_name');
+            if (nameInput instanceof HTMLInputElement && nameInput.value.trim()) {
+                return nameInput.value.trim();
+            }
+            return '';
+        }
+
+        updateTitle(popout) {
+            const subtitle = popout.querySelector('.stbreathe-group-popout-subtitle');
+            if (!(subtitle instanceof HTMLElement)) return;
+            const groupName = this.getGroupName();
+            subtitle.textContent = groupName ? ` · ${groupName}` : '';
+            subtitle.hidden = !groupName;
+        }
+
+        enhance(popout) {
+            if (!SETTINGS.groupPopoutCollapsible || popout.classList.contains(GROUP_POPOUT_ENHANCED_CLASS)) return;
+
+            const controlBar = Array.from(popout.children).find((node) => node.classList.contains('panelControlBar'));
+            if (!(controlBar instanceof HTMLElement)) return;
+
+            const closeButton = controlBar.querySelector('#groupMemberListPopoutClose');
+            const title = document.createElement('div');
+            title.className = 'stbreathe-group-popout-title';
+
+            const groupIcon = document.createElement('i');
+            groupIcon.className = 'fa-solid fa-users stbreathe-group-popout-title-icon';
+            groupIcon.setAttribute('aria-hidden', 'true');
+
+            const titleText = document.createElement('strong');
+            titleText.textContent = 'Grupo';
+
+            const subtitle = document.createElement('span');
+            subtitle.className = 'stbreathe-group-popout-subtitle';
+
+            title.append(groupIcon, titleText, subtitle);
+
+            const collapseButton = document.createElement('button');
+            collapseButton.type = 'button';
+            collapseButton.className = 'stbreathe-group-popout-toggle fa-solid';
+            collapseButton.addEventListener('mousedown', (event) => event.stopPropagation());
+            collapseButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.setCollapsed(popout, !popout.classList.contains(GROUP_POPOUT_COLLAPSED_CLASS), true);
+            });
+
+            controlBar.insertBefore(title, controlBar.firstChild);
+            controlBar.insertBefore(collapseButton, closeButton ?? null);
+            controlBar.classList.add('stbreathe-group-popout-bar');
+            popout.classList.add(GROUP_POPOUT_ENHANCED_CLASS);
+            this.updateTitle(popout);
+            this.setCollapsed(popout, SETTINGS.groupPopoutCollapsed, false);
+        }
+
+        setCollapsed(popout, collapsed, shouldPersist) {
+            popout.classList.toggle(GROUP_POPOUT_COLLAPSED_CLASS, collapsed);
+            const toggle = popout.querySelector('.stbreathe-group-popout-toggle');
+            if (toggle instanceof HTMLButtonElement) {
+                toggle.classList.toggle('fa-chevron-down', collapsed);
+                toggle.classList.toggle('fa-chevron-up', !collapsed);
+                toggle.setAttribute('aria-expanded', String(!collapsed));
+                toggle.setAttribute('aria-label', collapsed ? 'Desplegar miembros del grupo' : 'Plegar miembros del grupo');
+                toggle.title = collapsed ? 'Desplegar miembros del grupo' : 'Plegar miembros del grupo';
+            }
+
+            if (shouldPersist && SETTINGS.groupPopoutCollapsed !== collapsed) {
+                SETTINGS.groupPopoutCollapsed = collapsed;
+                persistSettings();
+            }
+        }
+
+        removeEnhancement(popout) {
+            popout.classList.remove(GROUP_POPOUT_ENHANCED_CLASS, GROUP_POPOUT_COLLAPSED_CLASS);
+            const controlBar = popout.querySelector('.stbreathe-group-popout-bar');
+            if (controlBar instanceof HTMLElement) {
+                controlBar.classList.remove('stbreathe-group-popout-bar');
+                controlBar.querySelector('.stbreathe-group-popout-title')?.remove();
+                controlBar.querySelector('.stbreathe-group-popout-toggle')?.remove();
+            }
+        }
+    }
+
     // Numeric controls handled as synced slider + number pairs. `decimals === null` => integers.
     // `unbounded` keeps the number input free of min/max (offsets). `read` pulls the live value.
     const RANGE_CONTROLS = [
@@ -748,6 +899,15 @@
                         </div>
                     </div>
 
+                    <div class="stbreathe-section">
+                        <div class="stbreathe-section-title">Integraciones con chats grupales</div>
+                        <div class="stbreathe-row stbreathe-row-check">
+                            <input id="stbreathe_group_popout_collapsible" type="checkbox" />
+                            <label for="stbreathe_group_popout_collapsible">Ventana flotante de miembros plegable</label>
+                            ${helpIcon('Añade una cabecera compacta a la ventana flotante de miembros del grupo. Permite plegarla sin perder su tamaño guardado ni su capacidad de redimensionamiento.')}
+                        </div>
+                    </div>
+
                     <div class="stbreathe-row stbreathe-reset-row">
                         <div id="stbreathe_reset" class="menu_button stbreathe-reset" title="Restore every setting to its default value">
                             <i class="fa-solid fa-rotate-left"></i> Reset to defaults
@@ -776,6 +936,7 @@
         const respectRm = get('stbreathe_respect_rm');
         const forceMotion = get('stbreathe_force_motion');
         const fallback = get('stbreathe_fallback_without_ce');
+        const groupPopoutCollapsible = get('stbreathe_group_popout_collapsible');
         const safeRescan = get('stbreathe_safe_rescan_ms');
         const minSize = get('stbreathe_min_size_px');
         const debug = get('stbreathe_debug');
@@ -785,6 +946,7 @@
         if (respectRm instanceof HTMLInputElement) respectRm.checked = SETTINGS.respectReducedMotion;
         if (forceMotion instanceof HTMLInputElement) forceMotion.checked = SETTINGS.forceMotionForTesting;
         if (fallback instanceof HTMLInputElement) fallback.checked = SETTINGS.fallbackWithoutCE;
+        if (groupPopoutCollapsible instanceof HTMLInputElement) groupPopoutCollapsible.checked = SETTINGS.groupPopoutCollapsible;
         if (safeRescan instanceof HTMLInputElement) safeRescan.value = String(SETTINGS.safeRescanMs);
         if (minSize instanceof HTMLInputElement) minSize.value = String(SETTINGS.minSizePx);
         if (debug instanceof HTMLInputElement) debug.checked = SETTINGS.debug;
@@ -793,6 +955,10 @@
     function applyRuntimeSettings(reason) {
         persistSettings();
         applyAnimationVariables();
+
+        if (groupPopoutController instanceof GroupMemberPopoutController) {
+            groupPopoutController.reconfigure();
+        }
 
         const instance = window[GLOBAL_KEY];
         if (!(instance instanceof BreathingIdleController)) return;
@@ -839,6 +1005,7 @@
         const respectRm = get('stbreathe_respect_rm');
         const forceMotion = get('stbreathe_force_motion');
         const fallback = get('stbreathe_fallback_without_ce');
+        const groupPopoutCollapsible = get('stbreathe_group_popout_collapsible');
         const safeRescan = get('stbreathe_safe_rescan_ms');
         const minSize = get('stbreathe_min_size_px');
         const debug = get('stbreathe_debug');
@@ -876,6 +1043,13 @@
             fallback.addEventListener('input', () => {
                 SETTINGS.fallbackWithoutCE = fallback.checked;
                 applyRuntimeSettings('fallback');
+            });
+        }
+
+        if (groupPopoutCollapsible instanceof HTMLInputElement) {
+            groupPopoutCollapsible.addEventListener('input', () => {
+                SETTINGS.groupPopoutCollapsible = groupPopoutCollapsible.checked;
+                applyRuntimeSettings('group-popout-collapsible');
             });
         }
 
@@ -948,6 +1122,9 @@
     function init() {
         loadPersistedSettings();
         mountSettingsUiWithRetry();
+
+        groupPopoutController = new GroupMemberPopoutController();
+        groupPopoutController.start();
 
         const instance = new BreathingIdleController();
         window[GLOBAL_KEY] = instance;

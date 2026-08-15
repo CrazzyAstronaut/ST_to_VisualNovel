@@ -196,3 +196,82 @@
         row-gap: 0.35rem;
     }
 }
+
+/* SillyTavern floating group member list: compact drawer-style header. */
+#groupMemberListPopout.stbreathe-group-popout-enhanced > .stbreathe-group-popout-bar {
+    position: relative;
+    inset: auto;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 0 8px;
+    gap: 6px;
+    justify-content: flex-start;
+    align-items: center;
+    opacity: 1;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 30, 0.9));
+    user-select: none;
+}
+
+#groupMemberListPopout.stbreathe-group-popout-enhanced > .stbreathe-group-popout-bar .stbreathe-group-popout-title {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    min-width: 0;
+    gap: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#groupMemberListPopout .stbreathe-group-popout-title-icon {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-right: 1px;
+}
+
+#groupMemberListPopout .stbreathe-group-popout-subtitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.82em;
+    opacity: 0.72;
+}
+
+#groupMemberListPopout .stbreathe-group-popout-toggle {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    opacity: 0.72;
+    cursor: pointer;
+}
+
+#groupMemberListPopout .stbreathe-group-popout-toggle:hover,
+#groupMemberListPopout .stbreathe-group-popout-toggle:focus-visible {
+    opacity: 1;
+}
+
+#groupMemberListPopout.stbreathe-group-popout-enhanced > #currentGroupMembers {
+    box-sizing: border-box;
+    height: calc(100% - 36px) !important;
+}
+
+#groupMemberListPopout.stbreathe-group-popout-collapsed {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+}
+
+#groupMemberListPopout.stbreathe-group-popout-collapsed > :not(.stbreathe-group-popout-bar) {
+    display: none !important;
+}
+
+#groupMemberListPopout.stbreathe-group-popout-collapsed > .stbreathe-group-popout-bar {
+    border-bottom-color: transparent;
+}

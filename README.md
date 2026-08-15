@@ -10,6 +10,7 @@ SillyTavern third-party extension that adds a subtle idle "breathing" animation 
 - Three animation modes: `stretch`, `move`, and `stretch + move`.
 - No backend, no Live2D, no sprite editing.
 - Built-in settings drawer in the Extensions menu (live updates, persisted settings).
+- Adds a collapsible header to SillyTavern's floating group-member window.
 
 ## How it works
 
@@ -59,6 +60,17 @@ Fully compatible with
   working — the two transforms compose instead of fighting.
 - Breathing animates from the bottom-center origin, matching MCEFAC's sprite anchoring.
 
+### Group member popout
+
+When SillyTavern opens its floating current-members window, the extension adds a compact
+`Group · group name` header with a fold/unfold button. Folding hides the member controls and
+list while keeping the window available as a small tab. The expanded dimensions remain owned by
+SillyTavern, so dragging and resizing continue to use its native Moving UI behavior.
+
+The last folded/unfolded state is remembered. The integration can be disabled from the
+**Integraciones con chats grupales** section in extension settings without closing or replacing
+the native popout.
+
 ## Defaults
 
 - Enabled by default.
@@ -72,8 +84,9 @@ Fully compatible with
 
 ## Settings (Extensions menu)
 
-The drawer is grouped into **Animation**, **Behavior**, and **Advanced** sections, and every
-option has a hoverable info icon (ⓘ) explaining what it does. All changes apply live.
+The drawer is grouped into **Animation**, **Behavior**, **Advanced**, and
+**Integraciones con chats grupales** sections, and every option has a hoverable info icon (ⓘ)
+explaining what it does. All changes apply live.
 
 **Animation**
 
@@ -97,6 +110,11 @@ option has a hoverable info icon (ⓘ) explaining what it does. All changes appl
 - **Safety rescan (ms)** and **Min sprite size (px)**.
 - **Debug logs**.
 
+**Integraciones con chats grupales**
+
+- **Ventana flotante de miembros plegable** — adds the compact foldable header to the native
+  floating members window without replacing its controls or resize behavior.
+
 **Reset to defaults** — a button at the bottom restores every setting at once.
 
 > Older installs that saved `low`/`medium`/`high` and `slow`/`medium`/`fast` are migrated
@@ -109,6 +127,7 @@ option has a hoverable info icon (ⓘ) explaining what it does. All changes appl
 - Character/chat switch and UI navigation.
 - Mobile portrait/landscape.
 - Sprites of different sizes.
+- Group-member popout folded/unfolded after resizing, dragging, closing, and reopening.
 - With and without reduced motion.
 
 ## Known assumptions
